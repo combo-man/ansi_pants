@@ -23,20 +23,20 @@ class AnsiPants:
 
 
     def __init__(self, in_file=sys.stdin, out_file=sys.stdout, flush_always=False, 
-                 start_call=None, update_call=None, kill_call=None, fps=30):   
+                 start=None, update=None, kill=None, fps=30):   
        
         yd, xd            = shutil.get_terminal_size()
         self._height      = yd
         self._width       = xd
         self._in_file     = in_file
         self._out_file    = out_file
-        self._start_call  = start_call
-        self._update_call = update_call
-        self._kill_call   = kill_call
+        self._start_call  = start
+        self._update_call = update
+        self._kill_call   = kill
         self.flush_always = flush_always
         self._last_frame  = time.time()
+        self._exit        = False
         self._fps         = 30
-        self.start()
 
     def __del__(self):
         self.cleanup()
@@ -53,18 +53,72 @@ class AnsiPants:
         tty.setraw(self._in_file)
         self.reset_cursor()
         self.clear_screen()
+        while True:
+            self.update()
+        self.clean_up()
+        print('goodbye!')
 
     def update(self):
         '''
         Main update loop
+        TODO:
+            FIX
+            Dynamically update reported terminal dimensions.
+            Performance issues?
         '''
-        ctime = time.time()
+        ctime = time.time() / 1000
         delta = ctime - self._last_frame
         diff  = delta - (self._fps / 60)
         if diff > 0:
             self._last_frame = ctime - diff
             if self._update_call:
                 self._update_call(self, delta)
+        if self._exit:
+            return
+
+
+    def quit(self):
+        self._exit = True
+
+    def get_dimensions(self):
+        return (self._height, self._width)
+
+    def get_width(self):
+        return self._width
+
+    def get_height(self):
+        return self._height
+
+    def get_fps(self):
+        return self._fps
+
+    def set_flush_mode(self, flush_always):
+        self.flush_always = flush_always
+
+    def get_flush_mode(self):
+        return self.flush_always
+
+    def get_out_file(self):
+        return self._outfile
+
+    def set_out_file(self, f):
+        '''
+        TODO: Actually do this
+        '''
+        pass
+
+    def get_in_file(self):
+        return self._infile
+
+    def set_in_file(self):
+        '''
+        TODO: Actually do this
+        '''
+        pass
+
+    def draw_char(self, char, x, y, fg_color='white', bg_color='black'):
+        self.move_cursor(x, y)
+        self.write(self.get_colorized(char, fg_color, bg_color))
 
     def cleanup(self):
         '''
@@ -125,13 +179,13 @@ class AnsiPants:
         TODO:
             Implement string caching
         '''
-        try:
-            return self._pair_strings[fg_color][bg_color]
-        except:
-            fg = self.lookup_ansi_code(fg_color, layer='fg')
-            bg = self.lookup_ansi_code(bg_color, layer='bg')
-            plate = self.pair_plate.format(fg, bg)
-            return plate
+        fg = self.lookup_ansi_code(fg_color, layer='fg')
+        bg = self.lookup_ansi_code(bg_color, layer='bg')
+        plate = self.pair_plate.format(fg, bg)
+        return plate
+
+    def get_colorized(self, string, fg_color, bg_color):
+        return self.get_color_plate(fg_color, bg_color) + string
 
     def lookup_ansi_code(self, color_string, layer='fg'):
         '''

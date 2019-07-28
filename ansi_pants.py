@@ -22,7 +22,7 @@ class AnsiPants:
                   'b_blue','b_magenta','b_cyan','b_white']
 
 
-    def __init__(self, in_file=sys.stdin, out_file=sys.stdout, flush_always=False, 
+    def __init__(self, in_file=sys.stdin, out_file=sys.stdout, flush_always=True, 
                  start=None, update=None, kill=None, fps=30):   
        
         yd, xd            = shutil.get_terminal_size()
@@ -53,9 +53,9 @@ class AnsiPants:
         tty.setraw(self._in_file)
         self.reset_cursor()
         self.clear_screen()
-        while True:
+        while not self._exit:
             self.update()
-        self.clean_up()
+        self.cleanup()
         print('goodbye!')
 
     def update(self):
@@ -69,12 +69,10 @@ class AnsiPants:
         ctime = time.time() / 1000
         delta = ctime - self._last_frame
         diff  = delta - (self._fps / 60)
-        if diff > 0:
+        if True:#diff > 0:
             self._last_frame = ctime - diff
             if self._update_call:
                 self._update_call(self, delta)
-        if self._exit:
-            return
 
 
     def quit(self):
@@ -126,9 +124,11 @@ class AnsiPants:
         '''
         if self._kill_call:
             self._kill_call()
-
         os.system('setterm -cursor on')
         termios.tcsetattr(self._in_file, termios.TCSADRAIN, self.prev_settings)
+        self.reset_color()
+        self.clear_screen()
+        self.reset_cursor()
 
     def reset_cursor(self):
         '''
@@ -140,6 +140,9 @@ class AnsiPants:
 
     def clear_screen(self):
         self.write(chr(27) + '[2J', flush=True)
+
+    def reset_color(self):
+        self.write('\u001b[0m')
 
     def get_input_handler(self):
         '''

@@ -47,14 +47,14 @@ class AnsiPants:
         '''
         Initiate terminal session. Called at __init__.
         '''
-        if self._start_call:
-            self._start_call(self)
-
         os.system('setterm -cursor off')
         self.prev_settings = termios.tcgetattr(self._in_file)
         tty.setraw(self._in_file)
         self.reset_cursor()
         self.clear_screen()
+        if self._start_call:
+            self._start_call(self)
+
         while not self._exit:
             self.update()
         self.cleanup()

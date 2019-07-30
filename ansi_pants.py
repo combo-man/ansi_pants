@@ -36,7 +36,7 @@ class AnsiPants:
         self.flush_always = flush_always
         self._last_frame  = time.time()
         self._exit        = False
-        self._fps         = 30
+        self._fps         = fps
 
     def __del__(self):
         self.cleanup()
@@ -66,11 +66,10 @@ class AnsiPants:
             Dynamically update reported terminal dimensions.
             Performance issues?
         '''
-        ctime = time.time() / 1000
+        ctime = time.time()
         delta = ctime - self._last_frame
-        diff  = delta - (self._fps / 60)
-        if True:#diff > 0:
-            self._last_frame = ctime - diff
+        if delta >= 1/self._fps:
+            self._last_frame = ctime
             if self._update_call:
                 self._update_call(self, delta)
 

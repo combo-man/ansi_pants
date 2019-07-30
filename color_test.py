@@ -15,5 +15,5 @@ def update(ap, delta):
 def start(ap):
     ap.write('WATCH ME GO')
 
-AP = AnsiPants(update=update, start=start)
+AP = AnsiPants(update=update, start=start, fps=1000)
 AP.start()

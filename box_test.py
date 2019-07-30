@@ -1,14 +1,13 @@
 from ansi_pants import AnsiPants
 import math, time
 
-def update(ap, delta):
+def box(ap, size):
     ap.clear_screen()
     ap.reset_cursor()
     if ap.get_char() == 'q':
         return ap.quit()
     wid, hi = ap.get_dimensions()
     side = min(wid, hi)
-    size = 10 
     mid = side // 2
     hor = u'\u2500'
     ver = u'\u2502'
@@ -18,7 +17,7 @@ def update(ap, delta):
     br = u'\u2518'
 
     t = time.time()
-    d = abs(math.sin(t*3)) * size
+    d = abs(math.sin(t*2)) * size
     lil, big = math.floor(mid - d), math.floor(mid + d)
     ap.draw_char(tl, lil, lil)
     ap.draw_char(tr, big, lil)
@@ -31,5 +30,7 @@ def update(ap, delta):
         ap.draw_char(ver, big, i)
 
 
+def update(ap, delta):
+    box(ap, 14)
 AP = AnsiPants(update=update)
 AP.start()

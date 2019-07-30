@@ -24,7 +24,7 @@ class AnsiPants:
                   'b_blue','b_magenta','b_cyan','b_white']
 
 
-    def __init__(self, in_file=sys.stdin, out_file=sys.stdout, flush_always=True, 
+    def __init__(self, in_file=sys.stdin, out_file=sys.stdout, flush_always=False, 
                  start=None, update=None, kill=None, fps=30):   
        
         yd, xd            = shutil.get_terminal_size()
@@ -74,7 +74,7 @@ class AnsiPants:
             self._last_frame = ctime
             if self._update_call:
                 self._update_call(self, delta)
-
+                self._out_file.flush()
 
     def quit(self):
         self._exit = True

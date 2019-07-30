@@ -13,8 +13,10 @@ class AnsiPants:
                '105','106','107']
     }
    
-    pair_plate   = u'\u001b[{};{}m'
-    offset_plate = u'\u001b[{};{}H'
+    pair_plate     = u'\u001b[{};{}m'
+    pair_plate_8   = u'\u001b[38;5;{}m\u001b[38;5;{}m'
+    rgb_pair_plate = u'\u001b[38;2;{};{};{}m\u001b[48;2;{};{};{}m'
+    offset_plate   = u'\u001b[{};{}H'
 
     color_list = ['black','red','green','yellow',
                   'blue','magenta','cyan','white',
@@ -113,9 +115,14 @@ class AnsiPants:
         '''
         pass
 
-    def draw_char(self, char, x, y, fg_color='white', bg_color='black'):
+
+    def draw_char(self, char, x, y, fg_color='white', bg_color='black', mode='16'):
         self.move_cursor(x, y)
-        self.write(self.get_colorized(char, fg_color, bg_color))
+        if mode == '16':
+            self.write(self.get_colorized(char, fg_color, bg_color))
+        elif mode == 'rgb':
+            rgb_plate = self.rgb_pair_plate.format(*fg_color, *bg_color)
+            self.write(rgb_plate + char)
 
     def cleanup(self):
         '''

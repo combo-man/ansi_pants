@@ -14,8 +14,7 @@ def update(ap, delta):
                      random.randint(0, x-1),
                      random.randint(0, y-1),
                      fg,
-                     bg,
-                     mode='rgb')
+                     bg)
 
 def start(ap):
     ap.write('WATCH ME GO')

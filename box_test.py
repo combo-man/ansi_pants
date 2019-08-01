@@ -3,7 +3,6 @@ import math, time
 
 def box(ap, size):
     ap.clear_screen()
-    ap.reset_cursor()
     if ap.get_char() == 'q':
         return ap.quit()
     wid, hi = ap.get_dimensions()
@@ -17,8 +16,8 @@ def box(ap, size):
     br = u'\u2518'
 
     t = time.time()
-    d = abs(math.sin(t*2)) * size
-    lil, big = math.floor(mid - d), math.floor(mid + d)
+    d = math.floor(abs(math.sin(t*2)) * size)
+    lil, big = mid - d, mid + d
     ap.draw_char(tl, lil, lil)
     ap.draw_char(tr, big, lil)
     ap.draw_char(bl, lil, big)
@@ -32,5 +31,5 @@ def box(ap, size):
 
 def update(ap, delta):
     box(ap, 14)
-AP = AnsiPants(update=update)
+AP = AnsiPants(update=update, flush_always=False)
 AP.start()

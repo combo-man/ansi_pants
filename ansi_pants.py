@@ -4,7 +4,8 @@ class AnsiPants:
     '''
     AnsiPants: The single-file terminal drawing library.
     '''
-    ansi_codes = {
+
+    _ansi_color_table = {
         'fg': ['30','31','32','33','34','35','36','37',
                '30;1','31;1','32;1','33;1','34;1',
                '35;1','36;1','37;1'],
@@ -12,13 +13,19 @@ class AnsiPants:
                '47','100','101','102','103','104',
                '105','106','107']
     }
-   
-    pair_plate     = u'\u001b[{};{}m'
-    pair_plate_8   = u'\u001b[38;5;{}m\u001b[38;5;{}m'
-    rgb_pair_plate = u'\u001b[38;2;{};{};{}m\u001b[48;2;{};{};{}m'
-    offset_plate   = u'\u001b[{};{}H'
 
-    color_list = ['black','red','green','yellow',
+    _ansi_line_set = '\r\n'
+    _ansi_escape       = '\u001b'
+    _ansi_reset_color     = '\u001b[0;m'
+    _ansi_color_plate16    = '\u001b[{};{}m'
+    _ansi_pair_plate16     = '\u001b[{};{}m'
+    _ansi_pair_plate8   = '\u001b[38;5;{}m\u001b[38;5;{}m'
+    _ansi_fg_plate_rgb   = '\u001b[38;2;{};{};{}m'
+    _ansi_bg_plate_rgb   = '\u001b[48;2;{};{};{}m'
+    _ansi_pair_plate_rgb = '\u001b[38;2;{};{};{}m\u001b[48;2;{};{};{}m'
+    _ansi_offset_plate   = '\u001b[{};{}H'
+
+    _ansi_color_list = ['black','red','green','yellow',
                   'blue','magenta','cyan','white',
                   'b_black','b_red','b_green','b_yellow',
                   'b_blue','b_magenta','b_cyan','b_white']
@@ -116,13 +123,19 @@ class AnsiPants:
         pass
 
 
-    def draw_char(self, char, x, y, fg_color='white', bg_color='black', mode='16'):
+    def draw_char(self, char, x, y, fg_color='white', bg_color='black'):
         self.move_cursor(x, y)
-        if mode == '16':
-            self.write(self.get_colorized(char, fg_color, bg_color))
-        elif mode == 'rgb':
-            rgb_plate = self.rgb_pair_plate.format(*fg_color, *bg_color)
-            self.write(rgb_plate + char)
+        self.write(self.get_colorized(char, fg_color, bg_color))
+
+    def draw_str(self, s, x, y, fg_color_list=False, bg_color_list=False, fg_color='white', bg_color='black'):
+        end = min(x + len(s), self._width - 1)
+        res = []
+        c = 0
+        for i in range(x, end):
+            fg = (fg_color_list and fg_color_list[i]) or fg_color
+            bg = (bg_color_list and bg_color_list[i]) or bg_color
+            res.append(self.get_colorized(s[c], fg, bg))
+            c += 1 
 
     def cleanup(self):
         '''
@@ -148,7 +161,7 @@ class AnsiPants:
         self.write(chr(27) + '[2J', flush=True)
 
     def reset_color(self):
-        self.write('\u001b[0m')
+        self.write(self._ansi_reset_color)
 
     def get_input_handler(self):
         '''
@@ -170,7 +183,7 @@ class AnsiPants:
         '''
         Moves cursor to x, y (y, x in terminal conventions)
         '''
-        self.write(self.offset_plate.format(y, x))
+        self.write(self._ansi_offset_plate.format(y, x))
 
     def write_data(self, *args):
         '''
@@ -182,45 +195,51 @@ class AnsiPants:
     def flush_display(self):
         self._out_file.flush()  
 
-    def get_color_plate(self, fg_color, bg_color):
+    def get_color_plate(self, color, layer='fg'):
+        if isinstance(color, list):
+            if layer == 'fg':
+                return self._ansi_fg_plate_rgb.format(*color)
+            else:
+                return self._ansi_bg_plate_rgb.format(*color)
+        else:
+            return self._ansi_color_plate16.format(self.lookup_color_code(fg_color, layer))
+
+    def get_color_plate_pair(self, fg_color, bg_color):
         '''
         Gets a string representing a foreground and background color pair.
         TODO:
             Implement string caching
         '''
-        fg = self.lookup_ansi_code(fg_color, layer='fg')
-        bg = self.lookup_ansi_code(bg_color, layer='bg')
-        plate = self.pair_plate.format(fg, bg)
-        return plate
+        return self.get_color_plate(fg_color, 'fg') + self.get_color_plate(bg_color, 'bg')
 
     def get_colorized(self, string, fg_color, bg_color):
-        return self.get_color_plate(fg_color, bg_color) + string
+        return self.get_color_plate_pair(fg_color, bg_color) + string
 
-    def lookup_ansi_code(self, color_string, layer='fg'):
+    def lookup_color_code(self, color, layer='fg'):
         '''
         TODO:
             Make more better.
         '''
-        return self.ansi_codes[layer][self.color_list.index(color_string)]
+        return self._ansi_color_table[layer][self._ansi_color_list.index(color)]
     
     def make_ansi_data(self, char_table, fg_color_table, bg_color_table, off_x=0, off_y=0):
         '''
         Converts 3 x*y arrays into a a list of ANSI control strings.
         All 3 arrays must be of the same size (x*y).
         char_table is an x*y array of single characters.
-        (fg/bg)_color_table is an x*y array of color codes (See: ansi_codes)
+        (fg/bg)_color_table is an x*y array of color codes (See: _ansi_color_table)
         off_x and off_y are offsets from the top-left corner of terminal.
         '''
-        string_data = [self.offset_plate.format(off_y, off_x)]
+        string_data = [self._ansi_offset_plate.format(off_y, off_x)]
         plate = ''
         for y in range(len(char_table)):
             for x in range(len(char_table[y])):
-                plate = self.get_color_plate(fg_color_table[y][x], bg_color_table[y][x])
+                plate = self.get_color_plate_pair(fg_color_table[y][x], bg_color_table[y][x])
                 string_data.append(plate + char_table[y][x])
     
-            string_data.append('\u001b[0m')
+            string_data.append(self._ansi_reset_color)
             #\r moves the cursor back to beginning of line, cause honestly fsck newline behaviour
-            string_data.append('\r\n')
+            string_data.append(self._ansi_line_set)
             string_data.append('\u001b[{}C'.format(off_x-1))
     
         return string_data

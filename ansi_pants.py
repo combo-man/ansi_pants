@@ -14,12 +14,12 @@ class AnsiPants:
                '105','106','107']
     }
 
-    _ansi_line_set = '\r\n'
-    _ansi_escape       = '\u001b'
-    _ansi_reset_color     = '\u001b[0;m'
-    _ansi_color_plate16    = '\u001b[{};{}m'
-    _ansi_pair_plate16     = '\u001b[{};{}m'
-    _ansi_pair_plate8   = '\u001b[38;5;{}m\u001b[38;5;{}m'
+    _ansi_line_set       = '\r\n'
+    _ansi_escape         = '\u001b'
+    _ansi_reset_color    = '\u001b[0;m'
+    _ansi_color_plate16  = '\u001b[{}m'
+    _ansi_pair_plate16   = '\u001b[{};{}m'
+    _ansi_pair_plate8    = '\u001b[38;5;{}m\u001b[38;5;{}m'
     _ansi_fg_plate_rgb   = '\u001b[38;2;{};{};{}m'
     _ansi_bg_plate_rgb   = '\u001b[48;2;{};{};{}m'
     _ansi_pair_plate_rgb = '\u001b[38;2;{};{};{}m\u001b[48;2;{};{};{}m'
@@ -137,6 +137,8 @@ class AnsiPants:
             res.append(self.get_colorized(s[c], fg, bg))
             c += 1 
 
+        self.write(''.join(res))
+
     def cleanup(self):
         '''
         Restores terminal to previous settings. Called at __del__.
@@ -202,7 +204,8 @@ class AnsiPants:
             else:
                 return self._ansi_bg_plate_rgb.format(*color)
         else:
-            return self._ansi_color_plate16.format(self.lookup_color_code(fg_color, layer))
+            print(color, file=sys.stderr)
+            return self._ansi_color_plate16.format(self.lookup_color_code(color, layer))
 
     def get_color_plate_pair(self, fg_color, bg_color):
         '''

@@ -17,7 +17,7 @@ def update(ap, delta):
                      bg)
 
 def start(ap):
-    ap.write('WATCH ME GO')
+    ap.draw_str('WATCH ME GO', x=0, y=0, fg_color='red', bg_color='green')
 
 AP = AnsiPants(update=update, start=start, fps=60)
 AP.start()

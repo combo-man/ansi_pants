@@ -3,6 +3,42 @@ import shutil, sys, tty, termios, os, time, select
 class AnsiPants:
     '''
     AnsiPants: The single-file terminal drawing library.
+
+    Args:
+        in_file (file): The input file to read from.
+        out_file (file): The output file to write to.
+        flush_always (bool): Flush standard output for every write?
+        start (function): User-supplied startup callback.
+        update (function): User-supplied update callback.
+        kill (function): User-supplied termination callback.
+        fps (int): Frames per second to attempt to run at.
+
+    Attributes:
+        _ansi_color_table: Lookup table for basic ANSI color codes.
+
+        _ansi_line_set: Move cursor down a row and to first column.
+        _ansi_escape: Escape code header.
+        _ansi_reset_color: Restore current color to default.
+        _ansi_color_plate16: Format string for single basic color (fg or bg).
+        _ansi_pair_plate16: Format string for basic color pair.
+        _ansi_pair_plate8bit: Format string for 256-color fg and bg.
+        _ansi_fg_plate_rgb: Format string for single rgb fg color.
+        _ansi_bg_plate_rgb: Format string for single rgb bg color.
+        _ansi_pair_plate_rgb: Format string for rgb color pair.
+        
+        _ansi_color_list: List of supported basic color names.
+        
+        _height: Height of viewport.
+        _width: Width of viewport.
+        _in_file: Current input file in use.
+        _out_file: Current output file in use.
+        _start_call: Current user supplied startup callback.
+        _update_call: Current user supplied update callback.
+        _kill_call: Current user supplied termination callback.
+        _flush_always: Wether to flush all writes to output file.
+        _last_frame: The last time self.run was called.
+        _exit: Wether to terminate program.
+        _fps: The current frames per second to run at.
     '''
 
     _ansi_color_table = {
@@ -19,7 +55,7 @@ class AnsiPants:
     _ansi_reset_color    = '\u001b[0;m'
     _ansi_color_plate16  = '\u001b[{}m'
     _ansi_pair_plate16   = '\u001b[{};{}m'
-    _ansi_pair_plate8    = '\u001b[38;5;{}m\u001b[38;5;{}m'
+    _ansi_pair_plate8bit = '\u001b[38;5;{}m\u001b[38;5;{}m'
     _ansi_fg_plate_rgb   = '\u001b[38;2;{};{};{}m'
     _ansi_bg_plate_rgb   = '\u001b[48;2;{};{};{}m'
     _ansi_pair_plate_rgb = '\u001b[38;2;{};{};{}m\u001b[48;2;{};{};{}m'
@@ -33,7 +69,7 @@ class AnsiPants:
 
     def __init__(self, in_file=sys.stdin, out_file=sys.stdout, flush_always=False, 
                  start=None, update=None, kill=None, fps=30):   
-       
+
         yd, xd            = shutil.get_terminal_size()
         self._height      = yd
         self._width       = xd
@@ -48,12 +84,16 @@ class AnsiPants:
         self._fps         = fps
 
     def __del__(self):
+        '''
+        Restore terminal if self is collected somehow.
+        '''
         self.cleanup()
 
     def start(self):
         '''
         Initiate terminal session. Called at __init__.
         '''
+        #change terminal settings, save for restoration at exit
         os.system('setterm -cursor off')
         self.prev_settings = termios.tcgetattr(self._in_file)
         tty.setraw(self._in_file)
@@ -62,21 +102,21 @@ class AnsiPants:
         if self._start_call:
             self._start_call(self)
 
+        #call main loop
         while not self._exit:
-            self.update()
+            self.run()
         self.cleanup()
         print('goodbye!')
 
-    def update(self):
+    def run(self):
         '''
-        Main update loop
-        TODO:
-            FIX
-            Dynamically update reported terminal dimensions.
-            Performance issues?
+        Main update loop.
         '''
+        #update reported dimensions
+        self._height, self._width = shutil.get_terminal_size()
         ctime = time.time()
         delta = ctime - self._last_frame
+        #loop while behind
         if delta >= 1/self._fps:
             self._last_frame = ctime
             if self._update_call:
@@ -84,21 +124,27 @@ class AnsiPants:
                 self._out_file.flush()
 
     def quit(self):
+        '''Set exit flag. Terminate program after current update cycle.'''
         self._exit = True
 
     def get_dimensions(self):
+        '''Get current terminal dimensions.'''
         return (self._height, self._width)
 
     def get_width(self):
+        '''Get current terminal width.'''
         return self._width
 
     def get_height(self):
+        '''Get current terminal height.'''
         return self._height
 
     def get_fps(self):
+        '''Get current frames per second'''
         return self._fps
 
     def set_flush_mode(self, flush_always):
+        '''Set wether to flush every write to outfile'''
         self.flush_always = flush_always
 
     def get_flush_mode(self):
@@ -124,6 +170,16 @@ class AnsiPants:
 
 
     def draw_char(self, char, x, y, fg_color='white', bg_color='black'):
+        '''
+        Draw an (optionally) colored char at (x, y) in output file.
+
+        Args:
+            char (str): The char to write to output.
+            x (int): The column to draw at.
+            y (int): The row to draw at.
+            fg_color (str, list): The fg color to use when drawing.
+            bg_color (str, list): The bg color to use when drawing.
+        '''
         self.move_cursor(x, y)
         self.write(self.get_colorized(char, fg_color, bg_color))
 

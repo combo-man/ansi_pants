@@ -39,6 +39,7 @@ class AnsiPants:
         _last_frame: The last time self.run was called.
         _exit: Wether to terminate program.
         _fps: The current frames per second to run at.
+        _clock: Elapsed frames since startup.
     '''
 
     _ansi_color_table = {
@@ -82,6 +83,7 @@ class AnsiPants:
         self._last_frame  = time.time()
         self._exit        = False
         self._fps         = fps
+        self._clock       = 0
 
     def __del__(self):
         '''
@@ -119,6 +121,7 @@ class AnsiPants:
         #loop while behind
         if delta >= 1/self._fps:
             self._last_frame = ctime
+            self._clock += 1
             if self._update_call:
                 self._update_call(self, delta)
                 self._out_file.flush()
@@ -140,11 +143,15 @@ class AnsiPants:
         return self._height
 
     def get_fps(self):
-        '''Get current frames per second'''
+        '''Get current frames per second.'''
         return self._fps
 
+    def get_clock(self):
+        '''Get elapsed frames.'''
+        return self._clock
+
     def set_flush_mode(self, flush_always):
-        '''Set wether to flush every write to outfile'''
+        '''Set wether to flush every write to outfile.'''
         self.flush_always = flush_always
 
     def get_flush_mode(self):

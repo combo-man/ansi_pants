@@ -1,4 +1,4 @@
-import shutil, sys, tty, termios, os, time, select
+import shutil, sys, tty, termios, os, time, select, traceback, math
 
 class AnsiPants:
     '''
@@ -105,10 +105,16 @@ class AnsiPants:
             self._start_call(self)
 
         #call main loop
-        while not self._exit:
-            self.run()
-        self.cleanup()
+        try:
+            while not self._exit:
+                self.run()
+        except Exception as e:
+            self.on_error(traceback.format_exc())
+        finally:
+            self.cleanup()
+
         print('goodbye!')
+        time.sleep(.25)
 
     def run(self):
         '''
@@ -125,6 +131,27 @@ class AnsiPants:
             if self._update_call:
                 self._update_call(self, delta)
                 self._out_file.flush()
+
+    def on_error(self, err):
+        '''
+        Do this if all else fails.
+        '''
+        while self.get_char() != 'q':
+            fg, bg = 'white', 'red'
+            if math.floor(time.time() % 2):
+                fg, bg = bg, fg
+            self.set_color(fg, bg)
+            self.clear_screen()
+            self.reset_cursor()
+            self.write('Oh no, AnsiPants encountered an error!' + self._ansi_line_set)
+            self.write(self._ansi_line_set * 3)
+            for l in err.splitlines():
+                self.write(l + self._ansi_line_set)
+
+            self.write(self._ansi_line_set * 3)
+            self.write('Press q to exit.' + self._ansi_line_set)
+            time.sleep(0.5)
+        self.clear_screen()
 
     def quit(self):
         '''Set exit flag. Terminate program after current update cycle.'''
@@ -256,7 +283,14 @@ class AnsiPants:
         '''
         self.write(self.bake_ansi_string(*args))
         self.reset_cursor()
-   
+  
+    def set_color(self, fg_color, bg_color):
+        '''
+        Sets the color to use for any subsequent prints.
+        '''
+        pair = self.get_color_plate_pair(fg_color, bg_color)
+        self.write(pair.format('',''), flush=True)
+
     def flush_display(self):
         self._out_file.flush()  
 

@@ -301,7 +301,6 @@ class AnsiPants:
             else:
                 return self._ansi_bg_plate_rgb.format(*color)
         else:
-            print(color, file=sys.stderr)
             return self._ansi_color_plate16.format(self.lookup_color_code(color, layer))
 
     def get_color_plate_pair(self, fg_color, bg_color):

@@ -1,4 +1,8 @@
 import shutil, sys, tty, termios, os, time, select, traceback, math
+'''
+TODO:
+Optimize color plates. Holy hell that is terrible...
+'''
 
 class AnsiPants:
     '''
@@ -55,7 +59,7 @@ class AnsiPants:
     _ansi_escape         = '\u001b'
     _ansi_reset_color    = '\u001b[0;m'
     _ansi_color_plate16  = '\u001b[{}m'
-    _ansi_pair_plate16   = '\u001b[{};{}m'
+    _ansi_pair_plate16   = '\u001b[0;{};{}m'
     _ansi_pair_plate8bit = '\u001b[38;5;{}m\u001b[38;5;{}m'
     _ansi_fg_plate_rgb   = '\u001b[38;2;{};{};{}m'
     _ansi_bg_plate_rgb   = '\u001b[48;2;{};{};{}m'
@@ -309,7 +313,7 @@ class AnsiPants:
         TODO:
             Implement string caching
         '''
-        return self.get_color_plate(fg_color, 'fg') + self.get_color_plate(bg_color, 'bg')
+        return self._ansi_reset_color + self.get_color_plate(fg_color, 'fg') + self.get_color_plate(bg_color, 'bg')
 
     def get_colorized(self, string, fg_color, bg_color):
         return self.get_color_plate_pair(fg_color, bg_color) + string

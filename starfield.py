@@ -40,7 +40,6 @@ def update(ap, delta):
             char = '.'
             color = star['color']
         ap.draw_char(char, star['x_pos'], math.floor(star['y_pos']), color, 'black')
-        ap.reset_color()
 
 ap = AnsiPants(update=update, flush_always=True)
 ap.start()

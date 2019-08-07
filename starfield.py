@@ -26,6 +26,7 @@ def update(ap, delta):
     ap.clear_screen()
     for i, star in enumerate(STARS):
         mv_scale = 1/(star['layer'])
+        prev_pos = star['y_pos']
         star['y_pos'] += mv_scale
         if star['y_pos'] >= HEIGHT:
             star['y_pos'] = 0
@@ -34,7 +35,7 @@ def update(ap, delta):
         char = None
         color = None
         if (ap.get_clock() + i) // 10 % 2 == 0:
-            char = '*'
+            char = '.' if star['layer'] > 3 else '*'
             color = 'b_' + star['color']
         else:
             char = '.'

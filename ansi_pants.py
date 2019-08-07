@@ -1,7 +1,6 @@
 import shutil, sys, tty, termios, os, time, select, traceback, math
 '''
 TODO:
-Optimize color plates. Holy hell that is terrible...
 '''
 
 class AnsiPants:
@@ -67,9 +66,9 @@ class AnsiPants:
     _ansi_offset_plate   = '\u001b[{};{}H'
 
     _ansi_color_list = ['black','red','green','yellow',
-                  'blue','magenta','cyan','white',
-                  'b_black','b_red','b_green','b_yellow',
-                  'b_blue','b_magenta','b_cyan','b_white']
+                        'blue','magenta','cyan','white',
+                        'b_black','b_red','b_green','b_yellow',
+                        'b_blue','b_magenta','b_cyan','b_white']
 
 
     def __init__(self, in_file=sys.stdin, out_file=sys.stdout, flush_always=False, 

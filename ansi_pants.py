@@ -5,6 +5,9 @@ Add a script to run all tests in some sane way. Will probably
 require user interaction, but could also pipe to an output file
 and assert (would break on every change to output behaviour!!!).
 
+Refactor rendering to use an intermediary data structure. This way
+can check diff and hopefully shrink massive writes to _out_file.
+
 Refactor color arguments into color objects. This way they can easily be
 generated and cached at init. 
 Possibly generate named colors (web safe???)?

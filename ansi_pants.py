@@ -26,6 +26,7 @@ class AnsiPants:
         update (function): User-supplied update callback.
         kill (function): User-supplied termination callback.
         fps (int): Frames per second to attempt to run at.
+        raw_mode (bool): True = raw, False = cbreak
 
     Attributes:
         _ansi_color_table: Lookup table for basic ANSI color codes.
@@ -55,6 +56,7 @@ class AnsiPants:
         _fps: The current frames per second to run at.
         _clock: Elapsed frames since startup.
         _delta: The last recorded delta between frames.
+        _raw_mode: Is file in raw mode.
     '''
 
     _ansi_color_table = {
@@ -84,7 +86,7 @@ class AnsiPants:
 
 
     def __init__(self, in_file=sys.stdin, out_file=sys.stdout, flush_always=False, 
-                 start=None, update=None, kill=None, fps=30):   
+                 start=None, update=None, kill=None, fps=30, raw_mode=False):   
 
         yd, xd            = shutil.get_terminal_size()
         self._height      = yd
@@ -100,6 +102,7 @@ class AnsiPants:
         self._fps         = fps
         self._clock       = 0
         self._delta       = 0
+        self._raw_mode    = raw_mode
 
     def __del__(self):
         '''
@@ -114,7 +117,11 @@ class AnsiPants:
         #change terminal settings, save for restoration at exit
         os.system('setterm -cursor off')
         self.prev_settings = termios.tcgetattr(self._in_file)
-        tty.setraw(self._in_file)
+        if self._raw_mode:
+            tty.setraw(self._in_file)
+        else:
+            tty.setcbreak(self._in_file)
+
         self.reset_cursor()
         self.clear_screen()
         if self._start_call:
@@ -278,10 +285,10 @@ class AnsiPants:
         TODO:
             Replace with a call to move_cursor?
         '''
-        self.write(u'\u001b[f', flush=True)
+        self.write(u'\u001b[f')
 
     def clear_screen(self):
-        self.write(chr(27) + '[2J', flush=True)
+        self.write(chr(27) + '[2J')
 
     def reset_color(self):
         self.write(self._ansi_reset_color)
@@ -320,7 +327,7 @@ class AnsiPants:
         Sets the color to use for any subsequent prints.
         '''
         pair = self.get_color_plate_pair(fg_color, bg_color)
-        self.write(pair.format('',''), flush=True)
+        self.write(pair.format('',''))
 
     def flush_display(self):
         self._out_file.flush()  

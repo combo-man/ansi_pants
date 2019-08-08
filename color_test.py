@@ -1,6 +1,6 @@
 from ansi_pants import AnsiPants
 import random, colorsys, math, time, string
-def update(ap, delta):
+def update(ap):
     if ap.get_char() == 'q':
         return ap.quit()
     x, y = ap.get_dimensions()

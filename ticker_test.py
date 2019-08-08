@@ -1,6 +1,6 @@
 from ansi_pants import AnsiPants
 import string
-def update(ap, delta):
+def update(ap):
     if ap.get_char() == 'q':
         return ap.quit()
     messages = [

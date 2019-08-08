@@ -1,6 +1,17 @@
 import shutil, sys, tty, termios, os, time, select, traceback, math
 '''
 TODO:
+Add a script to run all tests in some sane way. Will probably
+require user interaction, but could also pipe to an output file
+and assert (would break on every change to output behaviour!!!).
+
+Refactor color arguments into color objects. This way they can easily be
+generated and cached at init. 
+Possibly generate named colors (web safe???)?
+
+Also change color lists to reflect that bright is a mode, not a color.
+Make this a trait of color objects.
+Maybe add bold, underline etc as well.
 '''
 
 class AnsiPants:
@@ -43,6 +54,7 @@ class AnsiPants:
         _exit: Wether to terminate program.
         _fps: The current frames per second to run at.
         _clock: Elapsed frames since startup.
+        _delta: The last recorded delta between frames.
     '''
 
     _ansi_color_table = {
@@ -87,6 +99,7 @@ class AnsiPants:
         self._exit        = False
         self._fps         = fps
         self._clock       = 0
+        self._delta       = 0
 
     def __del__(self):
         '''
@@ -126,13 +139,13 @@ class AnsiPants:
         #update reported dimensions
         self._height, self._width = shutil.get_terminal_size()
         ctime = time.time()
-        delta = ctime - self._last_frame
+        self._delta = ctime - self._last_frame
         #loop while behind
-        if delta >= 1/self._fps:
+        if self._delta >= 1/self._fps:
             self._last_frame = ctime
             self._clock += 1
             if self._update_call:
-                self._update_call(self, delta)
+                self._update_call(self)
                 self._out_file.flush()
 
     def on_error(self, err):
@@ -221,6 +234,21 @@ class AnsiPants:
         self.write(self.get_colorized(char, fg_color, bg_color))
 
     def draw_str(self, s, x, y, fg_color_list=False, bg_color_list=False, fg_color='white', bg_color='black'):
+        '''
+        Draw an (optionally) colored str at (x, y) in output file.
+        Automatically clips at viewport borders.
+        
+        Args:
+            s (str): The str to write to output.
+            x (int): The column to start drawing at.
+            y (int): The row to draw at.
+            fg_color (str, list): The fg color to use when drawing.
+            bg_color (str, list): The bg color to use when drawing.
+     
+        TODO:
+            Add modes for vertical strings and wraparound drawing
+
+        '''
         end = min(x + len(s), self._width - 1)
         res = []
         c = 0

@@ -29,7 +29,7 @@ def box(ap, size):
         ap.draw_char(ver, big, i)
 
 
-def update(ap, delta):
+def update(ap):
     box(ap, 14)
 AP = AnsiPants(update=update, flush_always=False)
 AP.start()

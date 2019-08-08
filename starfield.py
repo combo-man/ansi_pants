@@ -20,7 +20,7 @@ for i in range(N_STARS):
         'y_pos': random.randint(0, HEIGHT)})
 
 sorted(STARS, key=lambda x : x['layer'], reverse=True)
-def update(ap, delta):
+def update(ap):
     if ap.get_char() == 'q':
         ap.quit() 
     ap.clear_screen()

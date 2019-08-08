@@ -1,6 +1,6 @@
 from ansi_pants import AnsiPants
 
-def update(ap, delta):
+def update(ap):
     return 1/0
 
 ap = AnsiPants(update=update)

@@ -1,4 +1,4 @@
-import shutil, sys, tty, termios, os, time, select, traceback, math
+import shutil, sys, tty, termios, os, time, select, traceback, math, colorsys
 '''
 TODO:
 Add a script to run all tests in some sane way. Will probably
@@ -358,7 +358,7 @@ class AnsiPants:
             Make more better.
         '''
         return self._ansi_color_table[layer][self._ansi_color_list.index(color)]
-    
+   
     def make_ansi_data(self, char_table, fg_color_table, bg_color_table, off_x=0, off_y=0):
         '''
         Converts 3 x*y arrays into a a list of ANSI control strings.

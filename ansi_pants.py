@@ -208,16 +208,15 @@ class AnsiPants:
         return self.flush_always
 
     def get_out_file(self):
-        return self._outfile
+        return self._out_file
 
     def set_out_file(self, f):
-        '''
-        TODO: Actually do this
-        '''
+        self._out_file.flush()
+        self._out_file = f
         pass
 
     def get_in_file(self):
-        return self._infile
+        return self._in_file
 
     def set_in_file(self):
         '''

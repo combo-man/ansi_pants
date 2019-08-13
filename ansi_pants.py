@@ -1,12 +1,15 @@
-import shutil, sys, tty, termios, os, time, select, traceback, math, colorsys
+import shutil, sys, tty, termios, os, time, select, traceback, math
 '''
 TODO:
+Organize private and public methods. Also organize method
+order so it has some sort of legibility :P
+
 Add a script to run all tests in some sane way. Will probably
 require user interaction, but could also pipe to an output file
 and assert (would break on every change to output behaviour!!!).
 
 Refactor color arguments into color objects. This way they can easily be
-generated and cached at init. 
+generated and cached at init.
 Possibly generate named colors (web safe???)?
 
 Also change color lists to reflect that bright is a mode, not a color.
@@ -40,9 +43,9 @@ class AnsiPants:
         _ansi_fg_plate_rgb: Format string for single rgb fg color.
         _ansi_bg_plate_rgb: Format string for single rgb bg color.
         _ansi_pair_plate_rgb: Format string for rgb color pair.
-        
+
         _ansi_color_list: List of supported basic color names.
-        
+
         _height: Height of viewport.
         _width: Width of viewport.
         _in_file: Current input file in use.
@@ -60,12 +63,12 @@ class AnsiPants:
     '''
 
     _ansi_color_table = {
-        'fg': ['30','31','32','33','34','35','36','37',
-               '30;1','31;1','32;1','33;1','34;1',
-               '35;1','36;1','37;1'],
-        'bg': ['40','41','42','43','44','45','46',
-               '47','100','101','102','103','104',
-               '105','106','107']
+        'fg': ['30', '31', '32', '33', '34', '35', '36', '37',
+               '30;1', '31;1', '32;1', '33;1', '34;1',
+               '35;1', '36;1', '37;1'],
+        'bg': ['40', '41', '42', '43', '44', '45', '46',
+               '47', '100', '101', '102', '103', '104',
+               '105', '106', '107']
     }
 
     _ansi_line_set       = '\r\n'
@@ -79,14 +82,14 @@ class AnsiPants:
     _ansi_pair_plate_rgb = '\u001b[38;2;{};{};{}m\u001b[48;2;{};{};{}m'
     _ansi_offset_plate   = '\u001b[{};{}H'
 
-    _ansi_color_list = ['black','red','green','yellow',
-                        'blue','magenta','cyan','white',
-                        'b_black','b_red','b_green','b_yellow',
-                        'b_blue','b_magenta','b_cyan','b_white']
+    _ansi_color_list = ['black', 'red', 'green', 'yellow',
+                        'blue', 'magenta', 'cyan', 'white',
+                        'b_black', 'b_red', 'b_green', 'b_yellow',
+                        'b_blue', 'b_magenta', 'b_cyan', 'b_white']
 
 
-    def __init__(self, in_file=sys.stdin, out_file=sys.stdout, flush_always=False, 
-                 start=None, update=None, kill=None, fps=30, raw_mode=False):   
+    def __init__(self, in_file=sys.stdin, out_file=sys.stdout, flush_always=False,
+                 start=None, update=None, kill=None, fps=30, raw_mode=False):
 
         yd, xd            = shutil.get_terminal_size()
         self._height      = yd
@@ -105,15 +108,11 @@ class AnsiPants:
         self._raw_mode    = raw_mode
 
     def __del__(self):
-        '''
-        Restore terminal if self is collected somehow.
-        '''
+        '''Restore terminal if self is collected somehow.'''
         self.cleanup()
 
     def start(self):
-        '''
-        Initiate terminal session. Called at __init__.
-        '''
+        '''Initiate terminal session. Called at __init__.'''
         #change terminal settings, save for restoration at exit
         os.system('setterm -cursor off')
         self.prev_settings = termios.tcgetattr(self._in_file)
@@ -131,7 +130,7 @@ class AnsiPants:
         try:
             while not self._exit:
                 self.run()
-        except Exception as e:
+        except:
             self.on_error(traceback.format_exc())
         finally:
             self.cleanup()
@@ -140,9 +139,7 @@ class AnsiPants:
         time.sleep(.25)
 
     def run(self):
-        '''
-        Main update loop.
-        '''
+        '''Main update loop.'''
         #update reported dimensions
         self._height, self._width = shutil.get_terminal_size()
         ctime = time.time()
@@ -156,9 +153,7 @@ class AnsiPants:
                 self._out_file.flush()
 
     def on_error(self, err):
-        '''
-        Do this if all else fails.
-        '''
+        '''Do this if all else fails.'''
         while self.get_char() != 'q':
             fg, bg = 'white', 'red'
             if math.floor(time.time() % 2):
@@ -205,25 +200,28 @@ class AnsiPants:
         self.flush_always = flush_always
 
     def get_flush_mode(self):
+        '''Get current flush mode'''
         return self.flush_always
 
     def get_out_file(self):
+        '''Get current out file'''
         return self._out_file
 
     def set_out_file(self, f):
+        '''Set the current out file'''
         self._out_file.flush()
         self._out_file = f
-        pass
 
     def get_in_file(self):
+        '''Get the current in file'''
         return self._in_file
 
     def set_in_file(self):
         '''
         TODO: Actually do this
+        NASTY!
         '''
         pass
-
 
     def draw_char(self, char, x, y, fg_color='white', bg_color='black'):
         '''
@@ -239,18 +237,19 @@ class AnsiPants:
         self.move_cursor(x, y)
         self.write(self.get_colorized(char, fg_color, bg_color))
 
-    def draw_str(self, s, x, y, fg_color_list=False, bg_color_list=False, fg_color='white', bg_color='black'):
+    def draw_str(self, s, x, y, fg_color_list=False,
+                 bg_color_list=False, fg_color='white', bg_color='black'):
         '''
         Draw an (optionally) colored str at (x, y) in output file.
         Automatically clips at viewport borders.
-        
+
         Args:
             s (str): The str to write to output.
             x (int): The column to start drawing at.
             y (int): The row to draw at.
             fg_color (str, list): The fg color to use when drawing.
             bg_color (str, list): The bg color to use when drawing.
-     
+
         TODO:
             Add modes for vertical strings and wraparound drawing
 
@@ -262,14 +261,13 @@ class AnsiPants:
             fg = (fg_color_list and fg_color_list[i]) or fg_color
             bg = (bg_color_list and bg_color_list[i]) or bg_color
             res.append(self.get_colorized(s[c], fg, bg))
-            c += 1 
+            c += 1
 
+        self.move_cursor(x, y)
         self.write(''.join(res))
 
     def cleanup(self):
-        '''
-        Restores terminal to previous settings. Called at __del__.
-        '''
+        '''Restores terminal to previous settings. Called at __del__.'''
         if self._kill_call:
             self._kill_call()
         os.system('setterm -cursor on')
@@ -287,58 +285,47 @@ class AnsiPants:
         self.write(u'\u001b[f')
 
     def clear_screen(self):
+        '''Clear the display'''
         self.write(chr(27) + '[2J')
 
     def reset_color(self):
+        '''Reset color (and all styling flags!)'''
         self.write(self._ansi_reset_color)
 
-    def get_input_handler(self):
-        '''
-        Returns a callback to get input
-        TODO:
-            Replace with event polling?
-        '''
-        def inputter():
-            return self.get_char()
-
-        return inputter
-
     def write(self, txt, flush=False):
-        self._out_file.write(txt) 
+        '''Write data to outfile'''
+        self._out_file.write(txt)
         if flush or self.flush_always:
             self.flush_display()
-        
+
     def move_cursor(self, x, y):
-        '''
-        Moves cursor to x, y (y, x in terminal conventions)
-        '''
+        '''Moves cursor to x, y (y, x in terminal conventions)'''
         self.write(self._ansi_offset_plate.format(y, x))
 
     def write_data(self, *args):
-        '''
-        Convert buffer and write to output. (See: bake_ansi_string )
-        '''
+        '''Convert buffer and write to output. (See: bake_ansi_string )'''
         self.write(self.bake_ansi_string(*args))
         self.reset_cursor()
-  
+
     def set_color(self, fg_color, bg_color):
-        '''
-        Sets the color to use for any subsequent prints.
-        '''
+        '''Sets the color to use for any subsequent prints.'''
         pair = self.get_color_plate_pair(fg_color, bg_color)
-        self.write(pair.format('',''))
+        self.write(pair.format('', ''))
 
     def flush_display(self):
-        self._out_file.flush()  
+        '''Flush the outfile!'''
+        self._out_file.flush()
 
     def get_color_plate(self, color, layer='fg'):
+        '''
+        Generate a color plate (for a given layer
+        '''
         if isinstance(color, list):
             if layer == 'fg':
                 return self._ansi_fg_plate_rgb.format(*color)
-            else:
-                return self._ansi_bg_plate_rgb.format(*color)
-        else:
-            return self._ansi_color_plate16.format(self.lookup_color_code(color, layer))
+            return self._ansi_bg_plate_rgb.format(*color)
+
+        return self._ansi_color_plate16.format(self.lookup_color_code(color, layer))
 
     def get_color_plate_pair(self, fg_color, bg_color):
         '''
@@ -357,7 +344,7 @@ class AnsiPants:
             Make more better.
         '''
         return self._ansi_color_table[layer][self._ansi_color_list.index(color)]
-   
+
     def make_ansi_data(self, char_table, fg_color_table, bg_color_table, off_x=0, off_y=0):
         '''
         Converts 3 x*y arrays into a a list of ANSI control strings.
@@ -372,14 +359,14 @@ class AnsiPants:
             for x in range(len(char_table[y])):
                 plate = self.get_color_plate_pair(fg_color_table[y][x], bg_color_table[y][x])
                 string_data.append(plate + char_table[y][x])
-    
+
             string_data.append(self._ansi_reset_color)
             #\r moves the cursor back to beginning of line, cause honestly fsck newline behaviour
             string_data.append(self._ansi_line_set)
             string_data.append('\u001b[{}C'.format(off_x-1))
-    
+
         return string_data
-    
+
     def bake_ansi_string(self, *args):
       return ''.join(self.make_ansi_data(*args))
 

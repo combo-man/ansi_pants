@@ -56,6 +56,8 @@ class AnsiPants:
 
         _height: Height of viewport.
         _width: Width of viewport.
+        _cursor_x: Current x position of the cursor.
+        _cursor_y: Current y position of the cursor.
         _in_file: Current input file in use.
         _out_file: Current output file in use.
         _start_call: Current user supplied startup callback.
@@ -68,6 +70,7 @@ class AnsiPants:
         _clock: Elapsed frames since startup.
         _delta: The last recorded delta between frames.
         _raw_mode: Is file in raw mode.
+        _buffer_mode: Wether to use an intermediary buffer.
     '''
 
     _ansi_color_table = {
@@ -107,13 +110,16 @@ class AnsiPants:
         self._start_call  = start
         self._update_call = update
         self._kill_call   = kill
-        self.flush_always = flush_always
+        self._flush_always = flush_always
         self._last_frame  = time.time()
         self._exit        = False
         self._fps         = fps
         self._clock       = 0
         self._delta       = 0
         self._raw_mode    = raw_mode
+        self._cursor_x    = 0
+        self._cursor_y    = 0
+        self._buffer_mode = False
 
     def __del__(self):
         '''Restore terminal if self is collected somehow.'''
@@ -154,44 +160,57 @@ class AnsiPants:
         '''Get current terminal dimensions.'''
         return (self._height, self._width)
 
-    def get_width(self):
-        '''Get current terminal width.'''
+    @property
+    def width(self):
         return self._width
-
-    def get_height(self):
-        '''Get current terminal height.'''
+    
+    @property
+    def height(self):
         return self._height
 
-    def get_fps(self):
-        '''Get current frames per second.'''
+    @property
+    def fps(self):
         return self._fps
 
-    def get_clock(self):
-        '''Get elapsed frames.'''
+    @fps.setter
+    def fps(self, fps):
+        self._fps = fps
+
+    @property
+    def clock(self):
         return self._clock
 
-    def set_flush_mode(self, flush_always):
-        '''Set wether to flush every write to outfile.'''
-        self.flush_always = flush_always
+    @property
+    def flush_mode(self):
+        return self._flush_always
 
-    def get_flush_mode(self):
-        '''Get current flush mode'''
-        return self.flush_always
+    @flush_mode.setter
+    def flush_mode(self, mode):
+        self._flush_always = mode
 
-    def get_out_file(self):
-        '''Get current out file'''
+    @property
+    def buffer_mode(self):
+        return self_buffer_mode
+
+    @buffer_mode.setter
+    def buffer_mode(self, mode):
+        self._buffer_mode = mode
+
+    @property
+    def out_file(self):
         return self._out_file
 
-    def set_out_file(self, file_ref):
-        '''Set the current out file'''
+    @out_file.setter
+    def out_file(self, file_ref):
         self._out_file.flush()
         self._out_file = file_ref
 
-    def get_in_file(self):
-        '''Get the current in file'''
+    @property 
+    def in_file(self):
         return self._in_file
 
-    def set_in_file(self):
+    @in_file.setter
+    def in_file(self, file_ref):
         '''
         TODO: Actually do this
         NASTY!
@@ -228,7 +247,7 @@ class AnsiPants:
     def write(self, txt, flush=False):
         '''Write data to outfile'''
         self._out_file.write(txt)
-        if flush or self.flush_always:
+        if flush or self._flush_always:
             self.flush_screen()
 
     def reset_cursor(self):
@@ -243,8 +262,14 @@ class AnsiPants:
         '''Reset color (and all styling flags!)'''
         self.write(self._ansi_reset_color)
 
+    def get_cursor_pos(self):
+        '''Gets the current cursor position'''
+        return (self._cursor_x, self._cursor_y)
+
     def move_cursor(self, x, y):
         '''Moves cursor to x, y (y, x in terminal conventions)'''
+        self._cursor_x = x % self.width
+        self._cursor_y = y % self.height
         self.write(self._ansi_offset_plate.format(y, x))
 
     def clear_screen(self):

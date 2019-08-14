@@ -34,7 +34,7 @@ def update(ap):
 
         char = None
         color = None
-        if (ap.get_clock() + i) // 10 % 2 == 0:
+        if (ap.clock + i) // 10 % 2 == 0:
             char = '.' if star['layer'] > 3 else '*'
             color = 'b_' + star['color']
         else:

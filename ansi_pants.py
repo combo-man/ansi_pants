@@ -1,4 +1,12 @@
-import shutil, sys, tty, termios, os, time, select, traceback, math
+import shutil
+import sys
+import tty
+import termios
+import os
+import time
+import select
+import traceback
+import math
 '''
 TODO:
 Organize private and public methods. Also organize method
@@ -109,7 +117,7 @@ class AnsiPants:
 
     def __del__(self):
         '''Restore terminal if self is collected somehow.'''
-        self.cleanup()
+        self._cleanup()
 
     def start(self):
         '''Initiate terminal session. Called at __init__.'''
@@ -129,47 +137,14 @@ class AnsiPants:
         #call main loop
         try:
             while not self._exit:
-                self.run()
+                self._run()
         except:
-            self.on_error(traceback.format_exc())
+            self._on_error(traceback.format_exc())
         finally:
-            self.cleanup()
+            self._cleanup()
 
         print('goodbye!')
         time.sleep(.25)
-
-    def run(self):
-        '''Main update loop.'''
-        #update reported dimensions
-        self._height, self._width = shutil.get_terminal_size()
-        ctime = time.time()
-        self._delta = ctime - self._last_frame
-        #loop while behind
-        if self._delta >= 1/self._fps:
-            self._last_frame = ctime
-            self._clock += 1
-            if self._update_call:
-                self._update_call(self)
-                self._out_file.flush()
-
-    def on_error(self, err):
-        '''Do this if all else fails.'''
-        while self.get_char() != 'q':
-            fg, bg = 'white', 'red'
-            if math.floor(time.time() % 2):
-                fg, bg = bg, fg
-            self.set_color(fg, bg)
-            self.clear_screen()
-            self.reset_cursor()
-            self.write('Oh no, AnsiPants encountered an error!' + self._ansi_line_set)
-            self.write(self._ansi_line_set * 3)
-            for l in err.splitlines():
-                self.write(l + self._ansi_line_set)
-
-            self.write(self._ansi_line_set * 3)
-            self.write('Press q to exit.' + self._ansi_line_set)
-            time.sleep(0.5)
-        self.clear_screen()
 
     def quit(self):
         '''Set exit flag. Terminate program after current update cycle.'''
@@ -207,10 +182,10 @@ class AnsiPants:
         '''Get current out file'''
         return self._out_file
 
-    def set_out_file(self, f):
+    def set_out_file(self, file_ref):
         '''Set the current out file'''
         self._out_file.flush()
-        self._out_file = f
+        self._out_file = file_ref
 
     def get_in_file(self):
         '''Get the current in file'''
@@ -224,31 +199,15 @@ class AnsiPants:
         pass
 
     def draw_char(self, char, x, y, fg_color='white', bg_color='black'):
-        '''
-        Draw an (optionally) colored char at (x, y) in output file.
-
-        Args:
-            char (str): The char to write to output.
-            x (int): The column to draw at.
-            y (int): The row to draw at.
-            fg_color (str, list): The fg color to use when drawing.
-            bg_color (str, list): The bg color to use when drawing.
-        '''
+        '''Draw an (optionally) colored char at (x, y) in output file.'''
         self.move_cursor(x, y)
         self.write(self.get_colorized(char, fg_color, bg_color))
 
-    def draw_str(self, s, x, y, fg_color_list=False,
+    def draw_str(self, string, x, y, fg_color_list=False,
                  bg_color_list=False, fg_color='white', bg_color='black'):
         '''
         Draw an (optionally) colored str at (x, y) in output file.
         Automatically clips at viewport borders.
-
-        Args:
-            s (str): The str to write to output.
-            x (int): The column to start drawing at.
-            y (int): The row to draw at.
-            fg_color (str, list): The fg color to use when drawing.
-            bg_color (str, list): The bg color to use when drawing.
 
         TODO:
             Add modes for vertical strings and wraparound drawing
@@ -260,21 +219,17 @@ class AnsiPants:
         for i in range(x, end):
             fg = (fg_color_list and fg_color_list[i]) or fg_color
             bg = (bg_color_list and bg_color_list[i]) or bg_color
-            res.append(self.get_colorized(s[c], fg, bg))
+            res.append(self.get_colorized(string[c], fg, bg))
             c += 1
 
         self.move_cursor(x, y)
         self.write(''.join(res))
 
-    def cleanup(self):
-        '''Restores terminal to previous settings. Called at __del__.'''
-        if self._kill_call:
-            self._kill_call()
-        os.system('setterm -cursor on')
-        termios.tcsetattr(self._in_file, termios.TCSADRAIN, self.prev_settings)
-        self.reset_color()
-        self.clear_screen()
-        self.reset_cursor()
+    def write(self, txt, flush=False):
+        '''Write data to outfile'''
+        self._out_file.write(txt)
+        if flush or self.flush_always:
+            self.flush_screen()
 
     def reset_cursor(self):
         '''
@@ -284,66 +239,35 @@ class AnsiPants:
         '''
         self.write(u'\u001b[f')
 
-    def clear_screen(self):
-        '''Clear the display'''
-        self.write(chr(27) + '[2J')
-
     def reset_color(self):
         '''Reset color (and all styling flags!)'''
         self.write(self._ansi_reset_color)
-
-    def write(self, txt, flush=False):
-        '''Write data to outfile'''
-        self._out_file.write(txt)
-        if flush or self.flush_always:
-            self.flush_display()
 
     def move_cursor(self, x, y):
         '''Moves cursor to x, y (y, x in terminal conventions)'''
         self.write(self._ansi_offset_plate.format(y, x))
 
+    def clear_screen(self):
+        '''Clear the display'''
+        self.write(chr(27) + '[2J')
+
+    def flush_screen(self):
+        '''Flush the outfile!'''
+        self._out_file.flush()
+
+    def set_color(self, fg_color, bg_color):
+        '''Sets the color to use for any subsequent prints.'''
+        pair = self._get_color_plate_pair(fg_color, bg_color)
+        self.write(pair.format('', ''))
+
+    def get_colorized(self, string, fg_color, bg_color):
+        '''Returns colorized version of string'''
+        return self._get_color_plate_pair(fg_color, bg_color) + string
+
     def write_data(self, *args):
         '''Convert buffer and write to output. (See: bake_ansi_string )'''
         self.write(self.bake_ansi_string(*args))
         self.reset_cursor()
-
-    def set_color(self, fg_color, bg_color):
-        '''Sets the color to use for any subsequent prints.'''
-        pair = self.get_color_plate_pair(fg_color, bg_color)
-        self.write(pair.format('', ''))
-
-    def flush_display(self):
-        '''Flush the outfile!'''
-        self._out_file.flush()
-
-    def get_color_plate(self, color, layer='fg'):
-        '''
-        Generate a color plate (for a given layer
-        '''
-        if isinstance(color, list):
-            if layer == 'fg':
-                return self._ansi_fg_plate_rgb.format(*color)
-            return self._ansi_bg_plate_rgb.format(*color)
-
-        return self._ansi_color_plate16.format(self.lookup_color_code(color, layer))
-
-    def get_color_plate_pair(self, fg_color, bg_color):
-        '''
-        Gets a string representing a foreground and background color pair.
-        TODO:
-            Implement string caching
-        '''
-        return self._ansi_reset_color + self.get_color_plate(fg_color, 'fg') + self.get_color_plate(bg_color, 'bg')
-
-    def get_colorized(self, string, fg_color, bg_color):
-        return self.get_color_plate_pair(fg_color, bg_color) + string
-
-    def lookup_color_code(self, color, layer='fg'):
-        '''
-        TODO:
-            Make more better.
-        '''
-        return self._ansi_color_table[layer][self._ansi_color_list.index(color)]
 
     def make_ansi_data(self, char_table, fg_color_table, bg_color_table, off_x=0, off_y=0):
         '''
@@ -357,7 +281,7 @@ class AnsiPants:
         plate = ''
         for y in range(len(char_table)):
             for x in range(len(char_table[y])):
-                plate = self.get_color_plate_pair(fg_color_table[y][x], bg_color_table[y][x])
+                plate = self._get_color_plate_pair(fg_color_table[y][x], bg_color_table[y][x])
                 string_data.append(plate + char_table[y][x])
 
             string_data.append(self._ansi_reset_color)
@@ -368,7 +292,8 @@ class AnsiPants:
         return string_data
 
     def bake_ansi_string(self, *args):
-      return ''.join(self.make_ansi_data(*args))
+        '''Shortcut method to stringify make_ansi_data'''
+        return ''.join(self.make_ansi_data(*args))
 
     def get_char(self, wait=0):
         '''
@@ -377,5 +302,76 @@ class AnsiPants:
         '''
         if select.select([self._in_file], [], [], wait) == ([self._in_file], [], []):
             return self._in_file.read(1)
-        else:
-            return ''
+        return ''
+
+    def _run(self):
+        '''Main update loop.'''
+        #update reported dimensions
+        self._height, self._width = shutil.get_terminal_size()
+        ctime = time.time()
+        self._delta = ctime - self._last_frame
+        #loop while behind
+        if self._delta >= 1/self._fps:
+            self._last_frame = ctime
+            self._clock += 1
+            if self._update_call:
+                self._update_call(self)
+                self._out_file.flush()
+
+    def _on_error(self, err):
+        '''Do this if all else fails.'''
+        while self.get_char() != 'q':
+            fg, bg = 'white', 'red'
+            if math.floor(time.time() % 2):
+                fg, bg = bg, fg
+            self.set_color(fg, bg)
+            self.clear_screen()
+            self.reset_cursor()
+            self.write('Oh no, AnsiPants encountered an error!' + self._ansi_line_set)
+            self.write(self._ansi_line_set * 3)
+            for l in err.splitlines():
+                self.write(l + self._ansi_line_set)
+
+            self.write(self._ansi_line_set * 3)
+            self.write('Press q to exit.' + self._ansi_line_set)
+            time.sleep(0.5)
+        self.clear_screen()
+
+    def _cleanup(self):
+        '''Restores terminal to previous settings. Called at __del__.'''
+        if self._kill_call:
+            self._kill_call()
+        os.system('setterm -cursor on')
+        termios.tcsetattr(self._in_file, termios.TCSADRAIN, self.prev_settings)
+        self.reset_color()
+        self.clear_screen()
+        self.reset_cursor()
+
+    def _get_color_plate(self, color, layer='fg'):
+        '''
+        Generate a color plate (for a given layer
+        '''
+        if isinstance(color, list):
+            if layer == 'fg':
+                return self._ansi_fg_plate_rgb.format(*color)
+            return self._ansi_bg_plate_rgb.format(*color)
+
+        return self._ansi_color_plate16.format(self._lookup_color_code(color, layer))
+
+    def _get_color_plate_pair(self, fg_color, bg_color):
+        '''
+        Gets a string representing a foreground and background color pair.
+        TODO:
+            Implement string caching
+        '''
+        fg = self._get_color_plate(fg_color, 'fg')
+        bg = self._get_color_plate(bg_color, 'bg')
+        return self._ansi_reset_color + fg + bg
+
+    def _lookup_color_code(self, color, layer='fg'):
+        '''
+        TODO:
+            Make more better.
+        '''
+        return self._ansi_color_table[layer][self._ansi_color_list.index(color)]
+

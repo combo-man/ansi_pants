@@ -12,14 +12,6 @@ HEIGHT = 24
 N_STARS = 128
 STARS = []
 
-for i in range(N_STARS):
-    STARS.append({
-        'color': random.choice(COLORS),
-        'layer': random.randint(1, 7),
-        'x_pos': random.randint(0, WIDTH),
-        'y_pos': random.randint(0, HEIGHT)})
-
-sorted(STARS, key=lambda x : x['layer'], reverse=True)
 def update(ap):
     if ap.get_char() == 'q':
         ap.quit() 
@@ -43,4 +35,16 @@ def update(ap):
         ap.draw_char(char, star['x_pos'], math.floor(star['y_pos']), color, 'black')
 
 ap = AnsiPants(update=update)
+
+WIDTH, HEIGHT = ap.get_dimensions()
+
+for i in range(N_STARS):
+    STARS.append({
+        'color': random.choice(COLORS),
+        'layer': random.randint(1, 7),
+        'x_pos': random.randint(0, WIDTH),
+        'y_pos': random.randint(0, HEIGHT)})
+sorted(STARS, key=lambda x : x['layer'], reverse=True)
+
+
 ap.start()

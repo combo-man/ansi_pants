@@ -232,7 +232,7 @@ class AnsiPants:
             Add modes for vertical strings and wraparound drawing
 
         '''
-        end = min(x + len(s), self._width - 1)
+        end = min(x + len(string), self._width - 1)
         res = []
         c = 0
         for i in range(x, end):

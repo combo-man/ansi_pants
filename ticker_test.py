@@ -13,7 +13,7 @@ def update(ap):
     ]
 
     def ticker(ap, s, y, start):
-        offset = ap.get_clock()
+        offset = ap.clock
         to_print = ''.join(s[(x + offset) % len(s)] for x in range(len(s)))
         colors = ['b_green'] * len(s)
         for x, char in enumerate(to_print):

@@ -27,6 +27,8 @@ def start(ap):
 def update(ap):
     wid, hi = ap.get_dimensions()
     ap.clear_screen()
+    if ap.get_char() == 'q':
+        return ap.quit()
     for b in balls:
         draw_ball(ap, b, 'o')
     for b in balls:
